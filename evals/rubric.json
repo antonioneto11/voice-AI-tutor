@@ -1,0 +1,8 @@
+{
+  "correctness": { "max": 2 },
+  "plain_english": { "max": 2 },
+  "concrete_example": { "max": 2 },
+  "mode_following": { "max": 1 },
+  "safety_no_hallucination": { "max": 1 },
+  "passing_threshold": 7
+}
