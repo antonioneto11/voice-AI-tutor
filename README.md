@@ -75,9 +75,37 @@ OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 OPENAI_CHAT_MODEL=gpt-4.1-mini
 OPENAI_TTS_MODEL=gpt-4o-mini-tts
 OPENAI_TTS_VOICE=marin
+
+# Optional: Langfuse tracing (leave blank to disable)
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
-You can switch the voice to `cedar` if you prefer.
+You can switch the voice to `cedar` if you prefer. See `.env.local.example` for the full list.
+
+## Observability (Langfuse)
+
+The app is instrumented with [Langfuse](https://langfuse.com) for LLM tracing. Tracing is
+**opt-in**: set `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` to enable it.
+With the keys unset, the app behaves exactly as before and emits no traces.
+
+What gets traced:
+
+- **`tutor-turn`** — one trace per chat turn, with nested spans for the input guardrail,
+  knowledge retrieval, the OpenAI chat `generation` (model, tokens, cost, latency), and the
+  output guardrail. Trace input/output are set to the user question and final answer.
+- **`speech-to-text`** and **`text-to-speech`** — the OpenAI audio calls, traced as generations.
+- **Sessions** — the transcribe → chat → speech calls of one browser session share a
+  `sessionId`, so a full conversation is viewable in the Langfuse **Sessions** view. Each turn is
+  tagged with its `mode` (`teach` / `interview` / `quiz`) for filtering.
+- **Masking** — emails and card-like numbers are redacted from exported trace data.
+
+Instrumentation is initialized once via Next.js's `instrumentation.ts` hook
+(`@langfuse/otel` + `@opentelemetry/sdk-node`), and OpenAI calls are wrapped with
+`observeOpenAI` from `@langfuse/openai`. Each API route flushes spans with `after()` so nothing
+is lost in the serverless runtime. The eval runner (`npm run evals`) is traced too and groups a
+run under one session.
 
 ## Run locally
 
