@@ -86,7 +86,7 @@ function scoreAnswer(answer: string, evalCase: EvalCase, rubric: Rubric) {
   };
 }
 
-export async function runEvals() {
+export async function runEvals(sessionId?: string) {
   const evalCasesPath = path.join(process.cwd(), "evals", "eval_cases.json");
   const rubricPath = path.join(process.cwd(), "evals", "rubric.json");
   const evalCases = await loadJsonFile<EvalCase[]>(evalCasesPath);
@@ -95,10 +95,13 @@ export async function runEvals() {
   const results = [];
 
   for (const evalCase of evalCases) {
+    // Passing a shared sessionId groups every case of one eval run together in
+    // the Langfuse Sessions view, so a regression sweep reads as one unit.
     const response = await generateTutorAnswer({
       mode: evalCase.mode,
       input: evalCase.input,
-      history: evalCase.mode === "quiz" ? [{ role: "assistant", content: "Start a quiz for me." }] : []
+      history: evalCase.mode === "quiz" ? [{ role: "assistant", content: "Start a quiz for me." }] : [],
+      sessionId
     });
 
     const scored = scoreAnswer(response.answer, evalCase, rubric);

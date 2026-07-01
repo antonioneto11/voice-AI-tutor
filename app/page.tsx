@@ -34,8 +34,29 @@ const starterMessages: Message[] = [
   }
 ];
 
+// A stable per-browser-session id so the transcribe → chat → speech calls of a
+// conversation are grouped together in the Langfuse Sessions view.
+function getSessionId() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const existing = window.sessionStorage.getItem("tutorSessionId");
+  if (existing) {
+    return existing;
+  }
+
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.sessionStorage.setItem("tutorSessionId", generated);
+  return generated;
+}
+
 export default function HomePage() {
   const [mode, setMode] = useState<Mode>("teach");
+  const sessionIdRef = useRef<string>("");
   const [messages, setMessages] = useState<Message[]>(starterMessages);
   const [input, setInput] = useState("");
   const [transcript, setTranscript] = useState("");
@@ -49,6 +70,7 @@ export default function HomePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    sessionIdRef.current = getSessionId();
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -70,7 +92,7 @@ export default function HomePage() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, sessionId: sessionIdRef.current })
       });
 
       if (!response.ok) {
@@ -125,7 +147,8 @@ export default function HomePage() {
         body: JSON.stringify({
           mode,
           input: prompt,
-          history: messages.slice(-8)
+          history: messages.slice(-8),
+          sessionId: sessionIdRef.current
         })
       });
 
@@ -159,6 +182,7 @@ export default function HomePage() {
     try {
       const formData = new FormData();
       formData.append("file", blob, "question.webm");
+      formData.append("sessionId", sessionIdRef.current);
 
       const response = await fetch("/api/transcribe", {
         method: "POST",

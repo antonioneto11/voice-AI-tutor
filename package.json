@@ -9,6 +9,10 @@
     "evals": "tsx scripts/run-evals.ts"
   },
   "dependencies": {
+    "@langfuse/openai": "^5.9.0",
+    "@langfuse/otel": "^5.9.0",
+    "@langfuse/tracing": "^5.9.0",
+    "@opentelemetry/sdk-node": "^0.219.0",
     "next": "^15.3.3",
     "openai": "^4.103.0",
     "react": "^19.1.0",
